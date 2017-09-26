@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Light Pollution</title>
+    <meta name="description" content="360&deg; Image - A-Frame">
+    <script src="https://aframe.io/releases/0.6.1/aframe.min.js"></script>
+    <script src="d3.v4.min.js"></script>
+    <script>
+
+    var events;
+    var target;
+    var text_target;
+    var days;
+    var domnodes;
+    var animEndElm;
+    var square;
+
+    var day_strings = [
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+      'Monday'
+    ];
+
+    function animEnd (evt) {
+      if (events.length !== 0) {
+        var [event, day, text] = events.pop();
+        text_target.setAttribute('value', text);
+        days[day].emit('play-sound'); 
+        target.emit(event);
+        return;
+      }
+      // finished
+      target.emit('finito');
+      events = initEvents(domnodes);
+      text_target.setAttribute('value', 'Please look at the black square to restart');
+      document.querySelector('#button').emit('finito');
+      document.querySelector('#button').setAttribute('visible', true);
+      animEndElm.removeEventListener('animationend', animEnd);
+      square.addEventListener('click', begin, { 'once': true });
+    }
+
+    function begin (evt) {
+        if (text_target) {
+          text_target.setAttribute('value', 'Light Pollution');
+        }
+        document.querySelector('#intro').emit('play-intro');
+        square.setAttribute('visible', false);
+        animEndElm.addEventListener('animationend', animEnd);
+    }
+
+    function getDate (index, dateString) {
+      let temp = day_strings[index % 7];
+      let split = dateString.split('.')
+      return temp + ', ' + split[0] + '.' + split[1];
+    }
+
+    function initEvents (domnodes) {
+      return domnodes.map((node) => {
+          return [node.getAttribute('begin'), node.getAttribute('day'), node.getAttribute('text')];
+        }).reverse();
+    };
+
+     AFRAME.registerComponent('begin-listener', {
+        init: function () {
+         square = this.el;
+         this.el.addEventListener('click', begin, {'once': true});
+        }
+      });
+
+     AFRAME.registerComponent('sound-listener', {
+        init: function () {
+          this.el.addEventListener('sound-ended', () => {
+            console.log('intro finished');
+            window.setTimeout(function () {
+              var [event, day, text] = events.pop();
+              text_target.setAttribute('value', text);
+              days[day].emit('play-sound');
+              target.emit(event); 
+            }, 5000);
+          })
+        }
+     });
+
+     AFRAME.registerComponent('sound-starter', {
+        init: function () {
+          this.el.addEventListener('click', () => {
+            document.querySelector('#track').emit('restart');
+          }, {'once': true});
+        }
+     });
+     
+
+      AFRAME.registerComponent('anim-listener', {
+        init: function () {
+          //this.el.addEventListener('animationend', animEnd);
+          animEndElm = this.el;
+          this.el.addEventListener('click', () => {
+            document.querySelector('#track').emit('restart');
+          }, {'once': true});
+        }
+      });
+
+      AFRAME.registerComponent('track-listener', {
+        init: function () {
+          var self = this.el;
+          //this.el.addEventListener('animationend', animEnd);
+          this.el.addEventListener('sound-ended', () => {
+            self.emit('restart');
+          });
+        }
+      });
+
+      d3.csv("data.csv", (data) => {
+        'use strict';
+        target = document.querySelector('#big');
+        text_target = document.querySelector('#text-target');
+
+        days = [
+          document.querySelector('#tuesday'),
+          document.querySelector('#wednesday'),
+          document.querySelector('#thursday'),
+          document.querySelector('#friday'),
+          document.querySelector('#saturday'),
+          document.querySelector('#sunday'),
+          document.querySelector('#monday')
+        ];
+
+        let templateNode = document.querySelector('#anim-template');
+        var minmax = data.map( (item) => {
+          return parseFloat(item.Brillanza);
+        });
+        console.log(minmax);
+        let max = minmax.reduce((a, b) => {
+          return Math.max(a, b);
+        });
+
+        let min = minmax.reduce((a, b) => {
+          return Math.min(a, b);
+        });
+
+        var scaleFun = d3.scaleLinear().domain([min, max]).range([0.15, 0.87]);
+
+        domnodes = data.map((item, index) => {
+          let temp_node = templateNode.cloneNode();
+          if(index !== 0) {
+            temp_node.setAttribute('from', scaleFun(data[index - 1].Brillanza));
+          }
+          else {
+            temp_node.setAttribute('from', 0);
+          }
+          temp_node.setAttribute('fill', 'backwards');
+          temp_node.setAttribute('to', scaleFun(item.Brillanza));
+          temp_node.setAttribute('dur', 5000);
+          temp_node.setAttribute('begin', 'event-' + Math.random().toString(36).substring(7));
+          temp_node.setAttribute('day', index % 7);
+          temp_node.setAttribute('text', getDate(index, item.data));
+          return temp_node;
+        });
+
+        for (var i = domnodes.length - 1; i >= 0; i--) {
+          target.appendChild(domnodes[i]);
+        }
+
+        events = initEvents(domnodes);
+
+        templateNode.remove();
+      });
+
+    </script>
+  </head>
+  <body>
+    <a-scene light="defaultLightsEnabled: false">
+
+      <a-assets>
+        <audio id="track-audio" src="audio.mp3" preload="auto"></audio>
+      </a-assets>
+
+      <a-sphere anim-listener id="big" color="rgb(0, 0, 0)" radius="100" position="0 0 0" material="side: back; shader: flat; transparent: true; visible: true; opacity: 0.0">
+        <a-animation id="anim-template" attribute="material.opacity" begin="anim" to="0.8" dur="5000"></a-animation>
+        <a-animation attribute="material.opacity" begin="finito" to="0.0" dur="5000"></a-animation>
+      </a-sphere>
+
+      <a-plane id="button" material="transparent: true" rotate="0 -45" begin-listener color="#CCC" height="20" width="20" position="25 0 -50">
+        <a-animation attribute="material.opacity" begin="click" to="0" dur="5000"></a-animation>
+        <a-animation attribute="material.opacity" begin="finito" to="1" fill="backwards" dur="5000"></a-animation>
+      </a-plane>
+
+      <a-plane id="intro" sound-listener sound="src: url(intro.mp3); on: play-intro; autoplay: false" material="visible: false" rotate="0 0" color="#CCC" height="1" width="1" position="0 1 -1">
+      </a-plane>
+
+      <a-plane id="monday" sound="src: url(monday.mp3); on: play-sound; autoplay: false" material="visible: false" rotate="0 0" color="#CCC" height="1" width="1" position="0 1 -1">
+      </a-plane>
+      <a-plane id="tuesday" sound="src: url(tuesday.mp3); on: play-sound; autoplay: false" material="visible: false" rotate="0 0" color="#CCC" height="1" width="1" position="0 1 -1">
+      </a-plane>
+      <a-plane id="wednesday" sound="src: url(wednesday.mp3); on: play-sound; autoplay: false" material="visible: false" rotate="0 0" color="#CCC" height="1" width="1" position="0 1 -2">
+      </a-plane>
+      <a-plane id="thursday" sound="src: url(thursday.mp3); on: play-sound; autoplay: false" material="visible: false" rotate="0 0" color="#CCC" height="1" width="1" position="0 1 -2">
+      </a-plane>
+      <a-plane id="friday" sound="src: url(friday.mp3); on: play-sound; autoplay: false" material="visible: false" rotate="0 0" color="#CCC" height="1" width="1" position="0 1 -2">
+      </a-plane>
+      <a-plane id="saturday" sound="src: url(saturday.mp3); on: play-sound; autoplay: false" material="visible: false" rotate="0 0" color="#CCC" height="1" width="1" position="0 1 -2">
+      </a-plane>
+      <a-plane id="sunday" sound="src: url(sunday.mp3); on: play-sound; autoplay: false" material="visible: false" rotate="0 0" color="#CCC" height="1" width="1" position="0 1 -2">
+      </a-plane>
+
+
+      <a-plane id="track" sound="src: #track-audio; autoplay: false; volume: 0.75; on: restart;" material="visible: false" rotate="0 0" color="#CCC" height="1" width="1" position="0 1 3">
+      </a-plane>
+
+      <a-sky src="eso0932a.jpg" rotation="0 -90 0"></a-sky>
+
+      <a-camera>
+        <a-cursor id="cursor" color="#fff" fuse="true" fuse-timeout="1000">
+          <a-animation begin="cursor-fusing" easing="ease-in" attribute="scale"
+               fill="backwards" from="1 1 1" to="0.1 0.1 0.1"></a-animation>
+        </a-cursor>
+      </a-camera>
+      <a-text id="text-target" font="" value="Light Pollution" width="6" position="-1 0.5 -2.5"
+              rotation="0 0 0"></a-text>
+    </a-scene>
+  </body>
+</html>

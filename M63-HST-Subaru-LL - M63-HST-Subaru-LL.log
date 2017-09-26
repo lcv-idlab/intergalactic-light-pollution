@@ -1,0 +1,57 @@
+============================================
+Stitching panorama...
+============================================
+
+Platform: Linux 4.11.9-1-ARCH x86_64
+Version: 2017.0.0.eac5e8cc546e
+Working directory: /home/faebser/workspace/adv17/wednesday/tests/aframe/examples/boilerplate/panorama
+Output prefix: M63-HST-Subaru-LL - M63-HST-Subaru-LL
+
+Blender: enblend 4.2
+ExifTool version: 10.55
+
+Number of active images: 1
+Output exposure value: 0.0
+Canvas size: 2100x1050
+ROI: (0, 0) - (2100, 1050) 
+FOV: 360x180
+Projection: Equirectangular(2)
+Using GPU for remapping: false
+
+Panorama Outputs:
+* Exposure corrected, low dynamic range
+
+Remapped Images:
+* Exposure corrected, low dynamic range
+
+First input image
+Number: 0
+Filename: /home/faebser/workspace/adv17/wednesday/tests/aframe/examples/boilerplate/panorama/M63-HST-Subaru-LL.jpg
+Size: 3000x3079
+Projection: Normal (rectilinear)
+Response type: custom (EMoR)
+HFOV: 145
+Exposure value: 0.0
+
+
+Remapping LDR images...
+Multiple images output
+loading M63-HST-Subaru-LL.jpg
+remapping M63-HST-Subaru-LL.jpg
+saving M63-HST-Subaru-LL - M63-HST-Subaru-LL0000.tif
+
+Blending images...
+enblend: warning: only one input image given;
+enblend: note: Enblend needs two or more overlapping input images in order to do
+enblend: note: blending calculations.  The output will be the same as the input.
+enblend: info: loading next image: M63-HST-Subaru-LL - M63-HST-Subaru-LL0000.tif 1/1
+enblend: info: writing final output
+enblend: warning: must fall back to export image without alpha channel
+
+enblend: an exception occured
+enblend: 
+Postcondition violation!
+error in png_set_pHYs(): known incorrect sRGB profile
+(/build/vigra/src/vigra-1.11.1/src/impex/png.cxx:583)
+
+enblend: info: remove invalid output image "M63-HST-Subaru-LL - M63-HST-Subaru-LL.png"
